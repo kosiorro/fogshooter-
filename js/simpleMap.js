@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from './lib/BufferGeometryUtils.js';
 import { CFG } from './config.js';
 
 function makeGroundTexture() {
@@ -108,6 +109,7 @@ export function buildSimpleMap(scene) {
   crownGeo.translate(0, 6.5, 0);
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4a38, roughness: 1 });
   const crownMat = new THREE.MeshStandardMaterial({ color: 0x39543a, roughness: 1, flatShading: true });
+  const trunkParts = [], crownParts = [];
   let trees = 0;
   for (let i = 0; i < 300 && trees < 50; i++) {
     const a = rand() * Math.PI * 2;
@@ -118,16 +120,20 @@ export function buildSimpleMap(scene) {
       if (x > o.minX - 3 && x < o.maxX + 3 && z > o.minZ - 3 && z < o.maxZ + 3) { blocked = true; break; }
     }
     if (blocked) continue;
-    const t = new THREE.Group();
-    t.add(new THREE.Mesh(trunkGeo, trunkMat), new THREE.Mesh(crownGeo, crownMat));
-    t.position.set(x, 0, z);
-    t.scale.setScalar(0.7 + rand() * 0.8);
-    t.rotation.y = rand() * Math.PI * 2;
-    t.children.forEach(m => m.castShadow = true);
-    scene.add(t);
+    const sc = 0.7 + rand() * 0.8;
+    const m4 = new THREE.Matrix4().compose(
+      new THREE.Vector3(x, 0, z),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * Math.PI * 2),
+      new THREE.Vector3(sc, sc, sc)
+    );
+    trunkParts.push(trunkGeo.clone().applyMatrix4(m4));
+    crownParts.push(crownGeo.clone().applyMatrix4(m4));
     obstacles.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5, h: 4 });
     trees++;
   }
+  const trunkMesh = new THREE.Mesh(mergeGeometries(trunkParts), trunkMat);
+  const crownMesh = new THREE.Mesh(mergeGeometries(crownParts), crownMat);
+  scene.add(trunkMesh, crownMesh);
 
   const edge = new THREE.Mesh(
     new THREE.CylinderGeometry(R + 0.5, R + 0.5, 30, 48, 1, true),

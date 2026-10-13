@@ -80,13 +80,18 @@ export class Enemy {
     if (this.muzzle.intensity > 0) this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 40);
 
     if (now > this.nextFire && dist < 70) {
-      let visible = true;
-      const ray = { x: (playerPos.x - p.x) / dist, z: (playerPos.z - p.z) / dist, y: 0 };
-      const origin = { x: p.x, z: p.z, y: 1.4 };
-      for (const b of obstacles) {
-        const t = rayHitsOBB(origin, ray, b);
-        if (t && t < dist) { visible = false; break; }
+      if (this._losCheck === undefined || now - this._losCheck > 250) {
+        this._losCheck = now;
+        let visible = true;
+        const ray = { x: (playerPos.x - p.x) / dist, z: (playerPos.z - p.z) / dist, y: 0 };
+        const origin = { x: p.x, z: p.z, y: 1.4 };
+        for (const b of obstacles) {
+          const t = rayHitsOBB(origin, ray, b);
+          if (t && t < dist) { visible = false; break; }
+        }
+        this._losVisible = visible;
       }
+      const visible = this._losVisible;
       if (visible) {
         this.nextFire = now + CFG.enemyFireInterval * 1000 * (0.75 + Math.random() * 0.6);
         this.muzzle.intensity = 5;

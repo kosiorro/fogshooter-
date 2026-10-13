@@ -40,10 +40,12 @@ function initEditor() {
   }));
 }
 
+let resScale = 1, fpsEMA = 60, lastResChange = 0;
+
 function initRenderer() {
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true });
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -64,7 +66,7 @@ function setupScene() {
   const sun = new THREE.DirectionalLight(0xe8e2d5, 1.4);
   sun.position.set(30, 50, 20);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left = -130; sun.shadow.camera.right = 130;
   sun.shadow.camera.top = 130; sun.shadow.camera.bottom = -130;
   sun.shadow.camera.far = 260;
@@ -75,6 +77,7 @@ function setupScene() {
 function onResize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5) * resScale);
   renderer.setSize(innerWidth, innerHeight);
 }
 
@@ -367,10 +370,23 @@ function loop() {
   effects.update(dt);
 
   const t = Math.round((now - startTime) / 1000);
-  $('timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+  $('timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} · ${Math.round(fpsEMA)} FPS`;
 
   const dirName = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'][Math.round(((player.yaw % (Math.PI * 2)) + Math.PI * 2) / (Math.PI / 4)) % 8];
   $('compassN').textContent = dirName;
+
+  fpsEMA = fpsEMA * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05;
+  if (now - lastResChange > 2000) {
+    if (fpsEMA < 40 && resScale > 0.55) {
+      resScale = Math.max(0.55, resScale - 0.15);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5) * resScale);
+      lastResChange = now;
+    } else if (fpsEMA > 57 && resScale < 1) {
+      resScale = Math.min(1, resScale + 0.1);
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5) * resScale);
+      lastResChange = now;
+    }
+  }
 
   renderer.render(scene, camera);
 }
