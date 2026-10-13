@@ -37,23 +37,41 @@ node(${s},${w},${n},${e})["natural"="tree"];
 out 150;`;
 }
 
+async function fetchOnce(ep, q, timeoutMs) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(ep, {
+      method: 'POST',
+      body: 'data=' + encodeURIComponent(q),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: ctrl.signal,
+    });
+    if (!r.ok) throw new Error('Overpass: HTTP ' + r.status);
+    const j = await r.json();
+    return j.elements || [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetchOSM(lat, lon, wayLimit = 400) {
   const bbox = bboxAround(lat, lon, 260);
   const q = buildQuery(bbox, wayLimit);
   let lastErr = null;
   for (const ep of OVERPASS_ENDPOINTS) {
-    try {
-      const r = await fetch(ep, {
-        method: 'POST',
-        body: 'data=' + encodeURIComponent(q),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      });
-      if (!r.ok) { lastErr = new Error('Overpass: HTTP ' + r.status); continue; }
-      const j = await r.json();
-      return { elements: j.elements || [], bbox };
-    } catch (e) { lastErr = e; }
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const elements = await fetchOnce(ep, q, attempt === 0 ? 30000 : 45000);
+        if (elements.length === 0) throw new Error('Overpass: pusta odpowiedź');
+        return { elements, bbox };
+      } catch (e) {
+        lastErr = e;
+        if (e.name === 'AbortError') break;
+      }
+    }
   }
-  throw lastErr || new Error('Overpass nieosiągalny');
+  throw new Error('Serwery Overpass są przeciążone — spróbuj ponownie za chwilę (' + (lastErr ? lastErr.message : 'brak szczegółów') + ')');
 }
 
 export function classify(elements) {

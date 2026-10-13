@@ -247,7 +247,7 @@ function loop() {
 }
 
 function onMouseDown(e) {
-  if (e.button === 0 && player.isLocked() && running) {
+  if (e.button === 0 && running && player && weapon && player.isLocked()) {
     weapon.tryFire(performance.now(), shoot);
   }
 }
