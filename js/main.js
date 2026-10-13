@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CFG } from './config.js';
 import { geocode, fetchOSM, classify } from './osm.js';
 import { loadOfflineManifest } from './imagery.js';
+import { loadGLBMap } from './glbMap.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -67,6 +68,59 @@ function onResize() {
   renderer.setSize(innerWidth, innerHeight);
 }
 
+async function startGLB(file) {
+  try {
+    over = false;
+    running = false;
+    cleanupWorld();
+    setupScene();
+    hud.classList.add('hidden');
+    setStatus('Wczytywanie modelu 3D\u2026');
+    if (!renderer) initRenderer();
+
+    scene.background = new THREE.Color(CFG.fogColor);
+    scene.fog = new THREE.FogExp2(CFG.fogColor, CFG.skyFog * 0.55);
+
+    const buf = await file.arrayBuffer();
+    const built = await loadGLBMap(scene, buf);
+    obstacles = built.obstacles;
+    const mapR = Math.min(built.radius, CFG.mapRadius);
+    window.__fogMapRadius = mapR;
+
+    player = new Player(camera, renderer.domElement);
+    weapon = new Weapon(camera, scene);
+    effects = new Effects(scene);
+
+    const sp = spawnPoints(CFG.enemyCount, [mapR * 0.5, mapR * 0.9], obstacles, mapR - 2);
+    enemies = sp.map((pt, i) => new Enemy(scene, pt.x, pt.z, i));
+    for (const e of enemies) {
+      const lim = mapR - 2;
+      e._lim = lim;
+    }
+
+    kills = 0;
+    $('killCount').textContent = '0';
+    $('healthFill').style.width = '100%';
+    $('ammo').textContent = CFG.magSize;
+    $('msg').style.opacity = 0;
+
+    loading.classList.add('hidden');
+    hud.classList.remove('hidden');
+    $('objective').textContent = 'CEL: Eliminuj cele w mgle \u2014 MODEL 3D';
+
+    running = true;
+    startTime = performance.now();
+    clock.start();
+    renderer.setAnimationLoop(loop);
+    removeEventListener('resize', onResize);
+    addEventListener('resize', onResize);
+    renderer.domElement.requestPointerLock();
+  } catch (e) {
+    setStatus('B\u0142\u0105d modelu: ' + e.message, true);
+    console.error(e);
+  }
+}
+
 function cleanupWorld() {
   if (!scene) return;
   if (camera) while (camera.children.length) camera.remove(camera.children[0]);
@@ -108,6 +162,7 @@ async function startGame() {
     if (!renderer) initRenderer();
 
     setStatus('Budowanie mapy 3D…');
+    window.__fogMapRadius = CFG.mapRadius;
     const built = await buildMap(scene, groups, loc.lat, loc.lon, setStatus, manifest);
     obstacles = built.obstacles;
 
@@ -263,6 +318,17 @@ function onMouseDown(e) {
 document.addEventListener('mousedown', onMouseDown);
 
 $('loadBtn').addEventListener('click', startGame);
+$('glbBtn').addEventListener('click', () => $('glbFile').click());
+$('glbFile').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) startGLB(f);
+});
+document.addEventListener('dragover', e => { e.preventDefault(); });
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if (f && /\.(glb|gltf)$/i.test(f.name)) startGLB(f);
+});
 $('loc').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
 $('againBtn').addEventListener('click', () => {
   endScreen.classList.add('hidden');

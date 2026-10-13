@@ -7,7 +7,7 @@ export function circleHitsAny(x, z, r, obstacles) {
   return false;
 }
 
-export function spawnPoints(count, range, obstacles) {
+export function spawnPoints(count, range, obstacles, diskLimit = 107) {
   const pts = [];
   const rand = Math.random;
   let guard = 0;
@@ -16,8 +16,7 @@ export function spawnPoints(count, range, obstacles) {
     const d = range[0] + rand() * (range[1] - range[0]);
     const x = Math.cos(ang) * d;
     const z = Math.sin(ang) * d;
-    const lim = 107;
-    if (x * x + z * z > lim * lim) continue;
+    if (x * x + z * z > diskLimit * diskLimit) continue;
     let blocked = false;
     for (const b of obstacles) {
       if (x + 0.6 > b.minX && x - 0.6 < b.maxX && z + 0.6 > b.minZ && z - 0.6 < b.maxZ) { blocked = true; break; }

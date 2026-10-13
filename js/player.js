@@ -56,7 +56,7 @@ export class Player {
     if (!collideFn(nextX, this.pos.z, CFG.playerRadius, obstacles)) this.pos.x = nextX;
     if (!collideFn(this.pos.x, nextZ, CFG.playerRadius, obstacles)) this.pos.z = nextZ;
 
-    const lim = CFG.mapRadius - 2;
+    const lim = (window.__fogMapRadius || CFG.mapRadius) - 2;
     const d = Math.hypot(this.pos.x, this.pos.z);
     if (d > lim) {
       this.pos.x = this.pos.x / d * lim;

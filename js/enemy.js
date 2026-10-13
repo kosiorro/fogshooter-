@@ -73,7 +73,7 @@ export class Enemy {
     const nx = p.x + mx, nz = p.z + mz;
     if (!circleHitsAny(nx, p.z, 0.4, obstacles)) p.x = nx;
     if (!circleHitsAny(p.x, nz, 0.4, obstacles)) p.z = nz;
-    const lim = CFG.mapRadius - 2;
+    const lim = this._lim || (CFG.mapRadius - 2);
     const d = Math.hypot(p.x, p.z);
     if (d > lim) { p.x = p.x / d * lim; p.z = p.z / d * lim; }
 

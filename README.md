@@ -90,3 +90,24 @@ więc w grze wpisz dokładnie ten sam tekst.
 - ~18 przeciwników zamiast 22 (mniej raycastów na klatkę)
 - jedna geometria scalona na typ (budynki/drogi/woda), nie oddzielne meshe
 - limit 150 budynków, 160 drzew — na słabszym GPU zmniejsz w `js/config.js`
+
+## Własny model 3D (.glb / .gltf) — np. CityGML LoD2 Poznania
+
+Masz model miasta (np. `poznan_mesh_to_citygml_lod2_test1.glb`)? Podłączysz go na dwa sposoby:
+
+1. **Przycisk**: „… LUB WCZYTAJ MODEL 3D (.GLB)" w menu → wybierz plik.
+2. **Drag & drop**: przeciągnij plik `.glb` na okno przeglądarki.
+
+Model jest automatycznie:
+- skalowany, by największy wymiar mieścił się w ~220 m i centrowany na pozycję startową gracza,
+- obrotowo wyrównany do osi Y (postać stoi pionowo),
+- z kolizjami (siatka 8×8 AABB z bryły modelu — gracz nie przenika przez budynki),
+- z przeciwnikami rozmieszczonymi w promieniu mapy.
+
+Mgła, broń, HP i AI działają tak samo jak na mapach OSM.
+
+### Konwersja CityGML → GLB
+
+Jeśli masz pliki CityGML (`.xml`/`.gml`) zamiast GLB, przekonwertuj je np. narzędziem
+[citygml-tools](https://github.com/citygml4j/citygml-tools) (`to-glTF`) lub FME,
+potem wczytaj wynikowy `.glb` jak wyżej. GLB z teksturami działa najlepiej.
