@@ -4,6 +4,7 @@ import { geocode, fetchOSM, classify } from './osm.js';
 import { loadOfflineManifest } from './imagery.js';
 import { loadGLBMap } from './glbMap.js';
 import { Editor, findFreeSpot } from './editor.js';
+import { buildSimpleMap } from './simpleMap.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -75,6 +76,54 @@ function onResize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+}
+
+async function startSimple() {
+  try {
+    over = false;
+    running = false;
+    cleanupWorld();
+    setupScene();
+    hud.classList.add('hidden');
+    if (!renderer) initRenderer();
+    initEditor();
+
+    const built = buildSimpleMap(scene);
+    obstacles = built.obstacles;
+    groundMesh = built.ground;
+    window.__fogMapRadius = built.radius;
+
+    player = new Player(camera, renderer.domElement);
+    weapon = new Weapon(camera, scene);
+    effects = new Effects(scene);
+
+    const safe = findFreeSpot(obstacles, built.radius);
+    player.pos.set(safe.x, CFG.playerHeight, safe.z);
+    const sp = spawnPoints(CFG.enemyCount, CFG.spawnRange, obstacles, built.radius - 2);
+    enemies = sp.map((pt, i) => new Enemy(scene, pt.x, pt.z, i));
+    for (const e of enemies) e._lim = built.radius - 2;
+
+    kills = 0;
+    $('killCount').textContent = '0';
+    $('healthFill').style.width = '100%';
+    $('ammo').textContent = CFG.magSize;
+    $('msg').style.opacity = 0;
+
+    loading.classList.add('hidden');
+    hud.classList.remove('hidden');
+    $('objective').textContent = 'CEL: Eliminuj cele w mgle \u2014 MAPA TESTOWA';
+
+    running = true;
+    startTime = performance.now();
+    clock.start();
+    renderer.setAnimationLoop(loop);
+    removeEventListener('resize', onResize);
+    addEventListener('resize', onResize);
+    renderer.domElement.requestPointerLock();
+  } catch (e) {
+    setStatus('Blad mapy testowej: ' + e.message, true);
+    console.error(e);
+  }
 }
 
 async function startGLB(file) {
@@ -336,6 +385,7 @@ document.addEventListener('mousedown', onMouseDown);
 
 $('loadBtn').addEventListener('click', startGame);
 $('glbBtn').addEventListener('click', () => $('glbFile').click());
+$('simpleBtn').addEventListener('click', startSimple);
 $('glbFile').addEventListener('change', e => {
   const f = e.target.files[0];
   if (f) startGLB(f);
