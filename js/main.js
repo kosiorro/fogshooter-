@@ -107,7 +107,7 @@ async function startSimple() {
     window.__fogMapRadius = built.radius;
     initPhysics();
 
-    player = new Player(camera, renderer.domElement);
+    player = new Player(camera, renderer.domElement, scene);
     weapon = new Weapon(camera, scene);
     effects = new Effects(scene);
 
@@ -162,7 +162,7 @@ async function startGLB(file) {
     const mapR = Math.min(built.radius, CFG.mapRadius);
     window.__fogMapRadius = mapR;
 
-    player = new Player(camera, renderer.domElement);
+    player = new Player(camera, renderer.domElement, scene);
     weapon = new Weapon(camera, scene);
     effects = new Effects(scene);
 
@@ -247,7 +247,7 @@ async function startGame() {
     groundMesh = built.ground;
     initPhysics();
 
-    player = new Player(camera, renderer.domElement);
+    player = new Player(camera, renderer.domElement, scene);
     weapon = new Weapon(camera, scene);
     effects = new Effects(scene);
 
