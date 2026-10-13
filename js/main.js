@@ -112,7 +112,7 @@ async function startSimple() {
     effects = new Effects(scene);
 
     const safe = findFreeSpot(obstacles, built.radius);
-    player.pos.set(safe.x, CFG.playerHeight, safe.z);
+    player.pos.set(safe.x, 0, safe.z);
     const sp = spawnPoints(CFG.enemyCount, CFG.spawnRange, obstacles, built.radius - 2);
     enemies = sp.map((pt, i) => new Enemy(scene, pt.x, pt.z, i));
     for (const e of enemies) e._lim = built.radius - 2;
@@ -167,7 +167,7 @@ async function startGLB(file) {
     effects = new Effects(scene);
 
     const safe = findFreeSpot(obstacles, mapR);
-    player.pos.set(safe.x, CFG.playerHeight, safe.z);
+    player.pos.set(safe.x, 0, safe.z);
     const sp = spawnPoints(CFG.enemyCount, [mapR * 0.5, mapR * 0.9], obstacles, mapR - 2);
     enemies = sp.map((pt, i) => new Enemy(scene, pt.x, pt.z, i));
     for (const e of enemies) {
@@ -252,7 +252,7 @@ async function startGame() {
     effects = new Effects(scene);
 
     const safe = findFreeSpot(obstacles, window.__fogMapRadius || CFG.mapRadius);
-    player.pos.set(safe.x, CFG.playerHeight, safe.z);
+    player.pos.set(safe.x, 0, safe.z);
     const sp = spawnPoints(CFG.enemyCount, CFG.spawnRange, obstacles);
     enemies = sp.map((p, i) => new Enemy(scene, p.x, p.z, i));
 
@@ -367,39 +367,35 @@ function loop() {
 
   const moving = player.keys.KeyW || player.keys.KeyA || player.keys.KeyS || player.keys.KeyD;
   player.update(dt, obstacles, circleHitsAny);
-  weapon.update(dt, now, player, moving, () => {
-    $('ammo').textContent = weapon.ammo;
-    showMsg('Gotów!', 700);
-  });
-
-  weapon.setAiming(!!player.buttons[2]);
-
-  const paused = player.isLocked();
+  player.update(dt, obstacles);
+  if (player.buttons[0]) tryShoot();
+  if (player.keys.KeyR && weapon) weapon.reload(now);
+  if (weapon) {
+    weapon.update(dt, now, player, false, () => {
+      $('ammo').textContent = weapon.ammo;
+      showMsg('Got\u00f3w!', 700);
+    });
+  }
   for (const e of enemies) {
-    if (paused) e.update(dt, now, player.pos, obstacles, enemyShoot);
+    if (running) e.update(dt, now, player.pos, obstacles, enemyShoot);
   }
-
-  if (paused) {
-    if (player.keys.KeyR) weapon.reload(now);
-  }
-
-  effects.update(dt);
+    effects.update(dt);
   if (physics) physics.update(dt);
-  if (physics && player.keys.KeyF && player.isLocked() && running) {
-    const dir = player.forward();
+  if (physics && player.keys.KeyF && running) {
     if (!window.__fCooldown || performance.now() - window.__fCooldown > 400) {
       window.__fCooldown = performance.now();
+      const dir = player.aimDir();
       physics.spawnBall(
-        { x: player.pos.x + dir.x, y: player.pos.y - 0.2, z: player.pos.z + dir.z },
-        { x: dir.x * 14, y: dir.y * 6 + 2, z: dir.z * 14 }
+        { x: player.pos.x + dir.x, y: 1.2, z: player.pos.z + dir.z },
+        { x: dir.x * 14, y: 4, z: dir.z * 14 }
       );
     }
   }
-  if (physics && player.keys.KeyG && player.isLocked() && running) {
+  if (physics && player.keys.KeyG && running) {
     if (!window.__gCooldown || performance.now() - window.__gCooldown > 400) {
       window.__gCooldown = performance.now();
-      const dir = player.forward();
-      physics.spawnBox({ x: player.pos.x + dir.x * 1.5, y: player.pos.y, z: player.pos.z + dir.z * 1.5 });
+      const dir = player.aimDir();
+      physics.spawnBox({ x: player.pos.x + dir.x * 1.5, y: 0.5, z: player.pos.z + dir.z * 1.5 });
     }
   }
 
@@ -425,13 +421,18 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-function onMouseDown(e) {
-  if (e.button === 0 && running && player && weapon && player.isLocked()) {
-    weapon.tryFire(performance.now(), shoot);
-  }
+let _lastFire = 0;
+function tryShoot() {
+  if (!running || !player || !weapon) return;
+  const now = performance.now();
+  if (now - _lastFire < CFG.fireInterval) return;
+  if (weapon.reloading) return;
+  if (weapon.ammo <= 0) { weapon.reload(now); return; }
+  _lastFire = now;
+  weapon.ammo--;
+  $('ammo').textContent = weapon.ammo;
+  shoot();
 }
-
-document.addEventListener('mousedown', onMouseDown);
 
 $('loadBtn').addEventListener('click', startGame);
 $('glbBtn').addEventListener('click', () => $('glbFile').click());

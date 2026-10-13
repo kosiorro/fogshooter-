@@ -217,7 +217,7 @@ export class Editor {
     const st = this.getState();
     if (!st.player || !st.obstacles) return;
     const spot = findFreeSpot(st.obstacles, st.mapRadius || CFG.mapRadius);
-    st.player.pos.set(spot.x, CFG.playerHeight, spot.z);
+    st.player.pos.set(spot.x, 0, spot.z);
     st.player.vel.set(0, 0, 0);
     this.toast('Przeniesiono na wolne miejsce');
   }
