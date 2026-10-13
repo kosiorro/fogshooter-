@@ -5,6 +5,7 @@ import { loadOfflineManifest } from './imagery.js';
 import { loadGLBMap } from './glbMap.js';
 import { Editor, findFreeSpot } from './editor.js';
 import { buildSimpleMap } from './simpleMap.js';
+import { addSkyline } from './skyline.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -72,6 +73,8 @@ function setupScene() {
   sun.shadow.camera.far = 260;
   scene.add(sun);
   scene.add(new THREE.AmbientLight(0x8fa3b5, 0.35));
+
+  addSkyline(scene, CFG.fogColor);
 }
 
 function onResize() {

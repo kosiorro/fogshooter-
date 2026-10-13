@@ -14,7 +14,16 @@ export class Effects {
     this.scene.add(this.points);
     this.sparks = [];
     this.tracers = [];
-    this.tracerMat = new THREE.MeshBasicMaterial({ color: 0xffe4a8, transparent: true, opacity: 0.7, depthWrite: false });
+    this._pool = [];
+    const tracerGeo = new THREE.BoxGeometry(0.012, 0.012, 1);
+    tracerGeo.translate(0, 0, -0.5);
+    for (let i = 0; i < 24; i++) {
+      const mesh = new THREE.Mesh(tracerGeo, this.tracerMat);
+      mesh.visible = false;
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+      this._pool.push({ mesh, t: 0, active: false, max: 0.07 });
+    }
   }
 
   sparkAt(x, y, z, n = 8, color = 0xffcf8f) {
@@ -34,12 +43,14 @@ export class Effects {
   tracer(from, to) {
     const len = from.distanceTo(to);
     if (len < 0.1) return;
-    const geo = new THREE.BoxGeometry(0.012, 0.012, len);
-    const m = new THREE.Mesh(geo, this.tracerMat.clone());
-    m.position.copy(from).lerp(to, 0.5);
-    m.lookAt(to);
-    this.scene.add(m);
-    this.tracers.push({ mesh: m, t: 0, max: 0.07 });
+    const m = this._pool.find(t => !t.active);
+    if (!m) return;
+    m.active = true;
+    m.mesh.visible = true;
+    m.mesh.scale.set(1, 1, len);
+    m.mesh.position.copy(from).lerp(to, 0.5);
+    m.mesh.lookAt(to);
+    m.t = 0;
   }
 
   update(dt) {
@@ -58,15 +69,11 @@ export class Effects {
     this.geo.setDrawRange(0, w);
     this.geo.attributes.position.needsUpdate = true;
 
-    for (const tr of this.tracers) {
+    for (const tr of this._pool) {
+      if (!tr.active) continue;
       tr.t += dt;
       tr.mesh.material.opacity = 0.7 * (1 - tr.t / tr.max);
-      if (tr.t >= tr.max) {
-        this.scene.remove(tr.mesh);
-        tr.mesh.geometry.dispose();
-        tr.mesh.material.dispose();
-      }
+      if (tr.t >= tr.max) { tr.active = false; tr.mesh.visible = false; }
     }
-    this.tracers = this.tracers.filter(t => t.t < t.max);
   }
 }

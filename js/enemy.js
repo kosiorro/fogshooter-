@@ -28,9 +28,12 @@ export class Enemy {
     this.deathTime = 0;
     this.nextFire = performance.now() + 2000 + Math.random() * 3000;
     this.repositionAt = 0;
-    this.muzzle = new THREE.PointLight(0xffa644, 0, 6);
-    this.muzzle.position.set(0, 1.3, 0.3);
-    this.group.add(this.muzzle);
+    const flashGeo = new THREE.SphereGeometry(0.16, 6, 5);
+    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffb35c, transparent: true, opacity: 0 });
+    this.flash = new THREE.Mesh(flashGeo, flashMat);
+    this.flash.position.set(0, 1.3, 0.35);
+    this.group.add(this.flash);
+    this._flashUntil = 0;
     scene.add(this.group);
   }
 
@@ -77,7 +80,7 @@ export class Enemy {
     const d = Math.hypot(p.x, p.z);
     if (d > lim) { p.x = p.x / d * lim; p.z = p.z / d * lim; }
 
-    if (this.muzzle.intensity > 0) this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 40);
+    this.flash.material.opacity = now < this._flashUntil ? 0.9 : 0;
 
     if (now > this.nextFire && dist < 70) {
       if (this._losCheck === undefined || now - this._losCheck > 250) {
@@ -94,7 +97,7 @@ export class Enemy {
       const visible = this._losVisible;
       if (visible) {
         this.nextFire = now + CFG.enemyFireInterval * 1000 * (0.75 + Math.random() * 0.6);
-        this.muzzle.intensity = 5;
+        this._flashUntil = now + 90;
         onShoot(this, playerPos, dist);
       } else {
         this.nextFire = now + 600;
