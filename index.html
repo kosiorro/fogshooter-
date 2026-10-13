@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FogShooter — Real Cities FPS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="loading">
+  <div class="panel">
+    <h1>FOG<span>SHOOTER</span></h1>
+    <p class="sub">Mapy z prawdziwych lokacji &middot; OpenStreetMap + zdjęcia satelitarne</p>
+    <div class="row">
+      <input id="loc" type="text" placeholder="Wpisz lokację (np. Poznań, Kraków, Berlin…)" value="Poznań, Poland">
+      <button id="loadBtn">WCZYTAJ MAPĘ</button>
+    </div>
+    <div id="status">Gotowy.</div>
+    <div class="hint">WASD — ruch &nbsp;·&nbsp; Mysz — celowanie &nbsp;·&nbsp; LPM — strzał &nbsp;·&nbsp; Shift — sprint &nbsp;·&nbsp; Spacja — skok &nbsp;·&nbsp; R — przeładowanie</div>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="topbar">
+    <div id="objective">CEL: Eliminuj cele w mgle</div>
+    <div id="timer">0:00</div>
+  </div>
+  <div id="kills">ELIMINACJE: <b id="killCount">0</b></div>
+  <div id="health"><div id="healthFill"></div></div>
+  <div id="ammoPanel"><span id="ammo">30</span><span class="res">/ ∞</span><div class="wname">KARABIN SZTURMOWY</div></div>
+  <div id="compass"><div id="compassN">N</div></div>
+  <div id="hitmarker"></div>
+  <div id="damageVignette"></div>
+  <div id="msg"></div>
+</div>
+
+<div id="endScreen" class="hidden">
+  <div class="panel">
+    <h2 id="endTitle">MISJA ZAKOŃCZONA</h2>
+    <p id="endStats"></p>
+    <button id="againBtn">ZAGRAJ PONOWNIE</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./js/lib/three.module.js" } }
+</script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

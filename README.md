@@ -1,0 +1,70 @@
+# FogShooter — Real Cities FPS (Three.js)
+
+FPS w Three.js, w którym **mapa to prawdziwa lokacja**: dane budynków, dróg, wody, lasów i drzew pochodzą z
+OpenStreetMap (Overpass API), a podłoże jest pokryte **prawdziwym zdjęciem satelitarnym** (Esri World Imagery).
+Całość zanurzona w gęstej mgle, inspirowane zrzutem z gry typu "Real Cities Shooter" (Poznań).
+
+## Uruchomienie
+
+Wymagany serwer HTTP z uwagi na moduły ES (nie otwieraj pliku bezpośrednio):
+
+```bash
+cd fogshooter
+npx serve .          # lub: python3 -m http.server 8000
+```
+
+Otwórz `http://localhost:8000` w przeglądarce (Chrome/Firefox/Edge).
+
+## Jak działa konwersja mapy
+
+1. **Wyszukanie lokacji** — Nominatim (np. "Poznań", "Kraków Rynek", "Berlin Alexanderplatz").
+2. **Pobranie danych OSM** — Overpass API: `building`, `highway`, `water`, `railway`, `wood/forest`, drzewa.
+3. **Konwersja do 3D** — budynki są wyciągane (extrude) według tagów `building:levels` / `height`
+   (rysowane jako uproszczone footprinty z otoczką wypukłą), drogi jako wstęgi o szerokości zależnej
+   od kategorii, woda/lasy jako płaszczyzny.
+4. **Zdjęcie satelitarne** — kafelki Esri World Imagery (zoom 17) wklejane do canvasa i nakładane
+   jako tekstura podłoża oraz ścian budynków (efekt "zdjęcia nałożonego na mapę").
+5. **Mgła** — `FogExp2` + tło w kolorze mgły, ustawienia w `js/config.js` (`skyFog`, `fogColor`).
+
+Dane są pobierane **w przeglądarce** (API OSM mają CORS), więc nie trzeba nic pobierać wcześniej.
+
+## Sterowanie
+
+| Klawisz | Akcja |
+|---|---|
+| WASD | ruch |
+| Mysz | celowanie (klik = pointer lock) |
+| LPM | strzał (headshoty ×2.2 dmg) |
+| Shift | sprint |
+| Spacja | skok |
+| R | przeładowanie |
+
+## Cel gry
+
+Eliminuj przeciwników nawiedzających lokację w mgle. Przeciwnicy strzelają, gdy mają linię widzenia,
+todo obrażeń zależy od dystansu. HP = 100.
+
+## Struktura
+
+```
+index.html        — UI (menu, HUD, ekran końcowy)
+css/style.css     — styl HUD
+js/main.js        — pętla gry, strzelanie, logika misji
+js/osm.js         — Nominatim + Overpass + klasyfikacja elementów
+js/mapBuilder.js  — konwersja OSM → geometria 3D + tekstura satelitarna
+js/imagery.js     — kafelki zdjęć satelitarnych z kolejką i cache
+js/tiles.js       — konwersja lat/lon → kafelki slippy map
+js/geo.js         — projekcja geograficzna
+js/hull.js        — otoczka wypukła, geometria 2D
+js/player.js      — gracz, ruch, kamera, pointer lock
+js/enemy.js        — przeciwnik (AI, hp, linia wzroku)
+js/weapon.js      — model karabinu w widoku pierwszej osoby
+js/effects.js     — tracery, iskry, flash
+js/collision.js   — kolizje koło-AABB, promień-AABB
+js/lib/three.module.js — Three.js r160
+```
+
+## Dostosowanie
+
+Wszystkie parametry (mgła, liczba przeciwników, obrażenia, HP, zoom zdjęcia) w `js/config.js`.
+Możesz podmienić `satURL()` w `js/imagery.js` na inne źródło kafelków.
