@@ -124,3 +124,14 @@ W grze naciśnij **E** — otworzy się panel edytora:
 - **Zapisz ustawienia** — persystencja w localStorage (przetrwa odświeżenie strony)
 
 Spawn gracza po wczytaniu mapy jest zawsze na wolnym miejscu (silnik szuka pierścieniem od środka).
+
+## Sterowanie (widok z góry — Diablo style)
+
+Po przejściu na widok izometryczny:
+- WASD/strzałki — ruch względem ekranu, Shift — sprint, Spacja — skok
+- Mysz — celowanie (postać obraca się do kursora; czerwony ring na ziemi = punkt celowania)
+- LPM (przytrzymaj) — seria strzałów, R — przeładowanie
+- F — rzut piłką fizyczną, G — skrzynia (cannon-es)
+- E — edytor mapy
+
+Jeśli po aktualizacji widać stary widok (broń FPS), zrób Ctrl+Shift+R lub wyczyść cache.
