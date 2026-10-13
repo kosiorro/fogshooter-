@@ -55,7 +55,10 @@ async function fetchOnce(ep, q, timeoutMs) {
   }
 }
 
-export async function fetchOSM(lat, lon, wayLimit = 400) {
+export async function fetchOSM(lat, lon, wayLimit = 400, manifest = null) {
+  if (manifest && Array.isArray(manifest.elements) && manifest.elements.length) {
+    return { elements: manifest.elements, bbox: bboxAround(lat, lon, 320) };
+  }
   const bbox = bboxAround(lat, lon, 320);
   const q = buildQuery(bbox, wayLimit);
   let lastErr = null;

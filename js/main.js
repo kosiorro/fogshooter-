@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CFG } from './config.js';
 import { geocode, fetchOSM, classify } from './osm.js';
+import { loadOfflineManifest } from './imagery.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -91,16 +92,23 @@ async function startGame() {
     hud.classList.add('hidden');
 
     setStatus('Szukanie lokacji…');
-    const loc = await geocode($('loc').value.trim() || 'Poznań');
+    const query = $('loc').value.trim() || 'Poznań';
+    setStatus('Sprawdzam offline pakiet mapy…');
+    const manifest = await loadOfflineManifest(query);
+    if (manifest) setStatus('Znaleziono offline: ' + manifest.name + ' — bez pobierania z sieci');
+    else setStatus('Szukanie lokacji online…');
+    const loc = manifest
+      ? { lat: manifest.lat, lon: manifest.lon, name: manifest.name }
+      : await geocode(query);
     setStatus('Lokacja: ' + loc.name + ' — pobieram dane OSM…');
-    const { elements } = await fetchOSM(loc.lat, loc.lon, CFG.minimapWays);
+    const { elements } = await fetchOSM(loc.lat, loc.lon, CFG.minimapWays, manifest);
     const groups = classify(elements);
     const bldCount = groups.buildings.length;
 
     if (!renderer) initRenderer();
 
     setStatus('Budowanie mapy 3D…');
-    const built = await buildMap(scene, groups, loc.lat, loc.lon, setStatus);
+    const built = await buildMap(scene, groups, loc.lat, loc.lon, setStatus, manifest);
     obstacles = built.obstacles;
 
     player = new Player(camera, renderer.domElement);

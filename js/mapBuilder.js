@@ -66,7 +66,7 @@ function snapLine(pts, L) {
   return out;
 }
 
-export async function buildMap(scene, groups, lat0, lon0, onStatus) {
+export async function buildMap(scene, groups, lat0, lon0, onStatus, offlineManifest) {
   const buildings = groups.buildings;
   const roadWays = groups.highways.filter(w => w.pts.length >= 2);
   const waterWays = groups.water;
@@ -256,7 +256,7 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
   };
 
   onStatus('Pobieranie zdjęcia satelitarnego…');
-  const sat = await makeSatTexture(lat0, lon0);
+  const sat = await makeSatTexture(lat0, lon0, offlineManifest);
   const groundTexture = sat.texture;
   const uvRep = 2 * R / sat.span;
   groundTexture.repeat.set(uvRep, uvRep);

@@ -68,3 +68,25 @@ js/lib/three.module.js — Three.js r160
 
 Wszystkie parametry (mgła, liczba przeciwników, obrażenia, HP, zoom zdjęcia) w `js/config.js`.
 Możesz podmienić `satURL()` w `js/imagery.js` na inne źródło kafelków.
+
+## Tryb offline — mapa przygotowana wcześniej
+
+Pobieranie danych OSM i 25 kafelków satelitarnych w locie bywa wolne. Możesz przygotować mapę wcześniej:
+
+```bash
+node tools/prepare-map.mjs "Poznań, Poland"
+node tools/prepare-map.mjs "Kraków, Rynek"
+```
+
+Skrypt zapisuje pakiet do `data/<slug>.json` (dane OSM + kafelki base64). Gra przy starcie
+najpierw sprawdza folder `data/` — jeśli znajdzie pakiet dla wpisanej lokacji, wczytuje ją
+**całkowicie offline** (zero zapytań do Overpass/Nominatim/Esri). Bez pakietu działa jak dawniej (online).
+
+Nazwa pliku jest generowana z zapytania (np. „Poznań, Poland" → `poznan-poland.json`),
+więc w grze wpisz dokładnie ten sam tekst.
+
+### Wydajność
+
+- ~18 przeciwników zamiast 22 (mniej raycastów na klatkę)
+- jedna geometria scalona na typ (budynki/drogi/woda), nie oddzielne meshe
+- limit 150 budynków, 160 drzew — na słabszym GPU zmniejsz w `js/config.js`

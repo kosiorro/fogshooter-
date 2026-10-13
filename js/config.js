@@ -18,7 +18,7 @@ export const CFG = {
   gravity: 14.0,
   startHP: 100,
   enemyHP: 60,
-  enemyCount: 22,
+  enemyCount: 18,
   enemyFireInterval: 1.7,
   enemyBulletDmg: 12,
   enemySpeed: 2.1,
