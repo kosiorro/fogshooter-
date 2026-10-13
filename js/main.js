@@ -3,6 +3,7 @@ import { CFG } from './config.js';
 import { geocode, fetchOSM, classify } from './osm.js';
 import { loadOfflineManifest } from './imagery.js';
 import { loadGLBMap } from './glbMap.js';
+import { Editor, findFreeSpot } from './editor.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -17,7 +18,7 @@ const loading = $('loading');
 const hud = $('hud');
 const endScreen = $('endScreen');
 
-let renderer, scene, camera, player, weapon, effects;
+let renderer, scene, camera, player, weapon, effects, editor, groundMesh;
 let enemies = [];
 let obstacles = [];
 let running = false, over = false;
@@ -28,6 +29,14 @@ let pendingReloadMsg = false;
 function setStatus(msg, err = false) {
   statusEl.textContent = msg;
   statusEl.classList.toggle('err', err);
+}
+
+function initEditor() {
+  if (editor) return;
+  editor = new Editor(() => ({
+    scene, player, obstacles, ground: groundMesh,
+    mapRadius: window.__fogMapRadius || CFG.mapRadius,
+  }));
 }
 
 function initRenderer() {
