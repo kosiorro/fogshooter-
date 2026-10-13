@@ -16,7 +16,8 @@ export function spawnPoints(count, range, obstacles) {
     const d = range[0] + rand() * (range[1] - range[0]);
     const x = Math.cos(ang) * d;
     const z = Math.sin(ang) * d;
-    if (x * x + z * z > 3.35 * 3.35) continue;
+    const lim = 107;
+    if (x * x + z * z > lim * lim) continue;
     let blocked = false;
     for (const b of obstacles) {
       if (x + 0.6 > b.minX && x - 0.6 < b.maxX && z + 0.6 > b.minZ && z - 0.6 < b.maxZ) { blocked = true; break; }

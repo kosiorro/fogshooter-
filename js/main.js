@@ -44,7 +44,7 @@ function setupScene() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(CFG.fogColor);
   scene.fog = new THREE.FogExp2(CFG.fogColor, CFG.skyFog);
-  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 400);
+  camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 600);
   scene.add(camera);
 
   const hemi = new THREE.HemisphereLight(0xcdd6df, 0x3a4046, 0.9);
@@ -53,9 +53,9 @@ function setupScene() {
   sun.position.set(30, 50, 20);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -10; sun.shadow.camera.right = 10;
-  sun.shadow.camera.top = 10; sun.shadow.camera.bottom = -10;
-  sun.shadow.camera.far = 140;
+  sun.shadow.camera.left = -130; sun.shadow.camera.right = 130;
+  sun.shadow.camera.top = 130; sun.shadow.camera.bottom = -130;
+  sun.shadow.camera.far = 260;
   scene.add(sun);
   scene.add(new THREE.AmbientLight(0x8fa3b5, 0.35));
 }

@@ -34,7 +34,7 @@ out geom 60;
 way(${s},${w},${n},${e})["landuse"~"forest|grass|meadow|park"];
 out geom 60;
 node(${s},${w},${n},${e})["natural"="tree"];
-out 150;`;
+out 300;`;
 }
 
 async function fetchOnce(ep, q, timeoutMs) {
@@ -56,7 +56,7 @@ async function fetchOnce(ep, q, timeoutMs) {
 }
 
 export async function fetchOSM(lat, lon, wayLimit = 400) {
-  const bbox = bboxAround(lat, lon, 260);
+  const bbox = bboxAround(lat, lon, 320);
   const q = buildQuery(bbox, wayLimit);
   let lastErr = null;
   for (const ep of OVERPASS_ENDPOINTS) {

@@ -4,8 +4,8 @@ import { project, ringArea, bbox } from './geo.js';
 import { averageHull, dist2D } from './hull.js';
 import { makeSatTexture } from './imagery.js';
 
-const R = 3.5;
-const SCALE = 0.32;
+const R = CFG.mapRadius;
+const SCALE = 1;
 
 function wayLevels(tags, areaM2) {
   const lv = parseFloat(tags['building:levels']);
@@ -19,7 +19,7 @@ function wayLevels(tags, areaM2) {
 }
 
 function levelsToHeight(lv) {
-  return lv * CFG.heightPerLevel * SCALE + 0.6;
+  return Math.max(2.2, lv * CFG.heightPerLevel);
 }
 
 function buildingFootprint(way) {
@@ -43,7 +43,7 @@ function clampToDisk(pts, maxR = R * 0.96) {
 
 function snapLine(pts, L) {
   const out = [];
-  const stride = 0.75;
+  const stride = 3.0;
   const total = pts.reduce((acc, p, i) => {
     if (i === 0) return 0;
     return acc + dist2D(p.x, p.z, pts[i - 1].x, pts[i - 1].z);
@@ -82,7 +82,7 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
   const blds = [];
   for (const w of buildings) {
     const fp = buildingFootprint(w);
-    if (fp.pts.length < 3 || fp.realArea < 25) continue;
+    if (fp.pts.length < 3 || fp.realArea < 20) continue;
     blds.push({ way: w, fp });
   }
   blds.sort((a, b) => b.fp.realArea - a.fp.realArea);
@@ -93,12 +93,12 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
     const c = hull.reduce((a, p) => ({ x: a.x + p.x / hull.length, z: a.z + p.z / hull.length }), { x: 0, z: 0 });
     let ok = true;
     for (const t of bldTaken) {
-      if (Math.hypot(t.x - c.x, t.z - c.z) < Math.min(t.r + Math.sqrt(b.fp.realArea) * SCALE * 0.28 + 0.18, 1.6)) { ok = false; break; }
+      if (Math.hypot(t.x - c.x, t.z - c.z) < Math.min(t.r + Math.sqrt(b.fp.realArea) * SCALE * 0.22 + 1.5, 10)) { ok = false; break; }
     }
     if (!ok) continue;
-    bldTaken.push({ x: c.x, z: c.z, r: Math.sqrt(b.fp.realArea) * SCALE * 0.2 });
+    bldTaken.push({ x: c.x, z: c.z, r: Math.sqrt(b.fp.realArea) * SCALE * 0.16 });
     pickBuildings.push(b);
-    if (pickBuildings.length >= 32) break;
+    if (pickBuildings.length >= 150) break;
   }
 
   const geometryArrays = {
@@ -130,10 +130,12 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
       if (len < 0.01) continue;
       const nx = -dz / len, nz = dx / len;
       const s = g.pos.length / 3;
-      const u = len * uvRep;
+      const ua = (a.x + R) * uvRep, va = (a.z + R) * uvRep;
+      const ub = (b.x + R) * uvRep, vb = (b.z + R) * uvRep;
+      const uh = h * uvRep;
       g.pos.push(a.x, 0, a.z, b.x, 0, b.z, b.x, h, b.z, a.x, h, a.z);
       g.norm.push(nx, 0, nz, nx, 0, nz, nx, 0, nz, nx, 0, nz);
-      g.uv.push(0, 0, u, 0, u, h * uvRep, 0, h * uvRep);
+      g.uv.push(ua, va, ub, vb, ub, vb + uh, ua, va + uh);
       g.idx.push(s, s + 1, s + 2, s, s + 2, s + 3);
     }
   };
@@ -169,8 +171,8 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
     ringClosed(ring);
     const lv = wayLevels(b.way.tags, b.fp.realArea);
     const h = levelsToHeight(lv);
-    addExtrude(ring, h, 'building', 0.8);
-    addTop(ring, h, 'roof', 0.8);
+    addExtrude(ring, h, 'building', uvRep);
+    addTop(ring, h, 'roof', 0.05);
     const bb = bbox(ring);
     buildingBoxes.push(bb);
     obstacles.push(bb);
@@ -195,24 +197,24 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
   };
 
   const highwayWidth = (t) => {
-    if (t.highway === 'footway' || t.highway === 'path' || t.highway === 'pedestrian') return 0.25;
-    if (t.highway === 'service' || t.highway === 'track') return 0.45;
-    if (t.highway === 'residential' || t.highway === 'living_street') return 0.65;
-    if (t.highway === 'primary' || t.highway === 'secondary' || t.highway === 'tertiary') return 0.9;
-    if (t.highway === 'motorway' || t.highway === 'trunk') return 1.1;
-    return 0.55;
+    if (t.highway === 'footway' || t.highway === 'path' || t.highway === 'pedestrian') return 2.5;
+    if (t.highway === 'service' || t.highway === 'track') return 4;
+    if (t.highway === 'residential' || t.highway === 'living_street') return 6.5;
+    if (t.highway === 'primary' || t.highway === 'secondary' || t.highway === 'tertiary') return 10;
+    if (t.highway === 'motorway' || t.highway === 'trunk') return 13;
+    return 5;
   };
 
   for (const w of roadWays) {
-    const pts = snapLine(projectPts(w.pts), 90);
+    const pts = snapLine(projectPts(w.pts), 200);
     if (pts.length < 2) continue;
-    addRibbon(pts, highwayWidth(w.tags), 'road', 1.2);
+    addRibbon(pts, highwayWidth(w.tags), 'road', 0.1);
   }
 
   for (const w of railWays) {
-    const pts = snapLine(projectPts(w.pts), 70);
+    const pts = snapLine(projectPts(w.pts), 150);
     if (pts.length < 2) continue;
-    addRibbon(pts, 0.3, 'rail', 2.5);
+    addRibbon(pts, 3, 'rail', 0.1);
   }
 
   for (const w of waterWays) {
@@ -221,10 +223,10 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
       let ring = averageHull(pts);
       ring = clampToDisk(ring, R);
       ringClosed(ring);
-      addTop(ring, 0.008, 'water', 0.9);
+      addTop(ring, 0.05, 'water', 0.02);
     } else {
-      const snapped = snapLine(pts, 60);
-      addRibbon(snapped, 0.55, 'water', 1.0, 0.008);
+      const snapped = snapLine(pts, 150);
+      addRibbon(snapped, 6, 'water', 0.02, 0.05);
     }
   }
 
@@ -234,7 +236,7 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
       let ring = averageHull(pts);
       ring = clampToDisk(ring, R * 1.04);
       ringClosed(ring);
-      addTop(ring, 0.005, 'grass', 0.7);
+      addTop(ring, 0.02, 'grass', 0.03);
     }
   }
 
@@ -254,7 +256,11 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
   };
 
   onStatus('Pobieranie zdjęcia satelitarnego…');
-  const groundTexture = await makeSatTexture(lat0, lon0);
+  const sat = await makeSatTexture(lat0, lon0);
+  const groundTexture = sat.texture;
+  const uvRep = 2 * R / sat.span;
+  groundTexture.repeat.set(uvRep, uvRep);
+  groundTexture.offset.set(sat.u0 - uvRep / 2, sat.v0 - uvRep / 2);
 
   const groundMat = new THREE.MeshStandardMaterial({ map: groundTexture, roughness: 0.95, metalness: 0 });
   const diskGeo = new THREE.CircleGeometry(R, 64);
@@ -279,43 +285,43 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
 
   // Trees
   const treeGeoms = [];
-  const trunkGeo = new THREE.CylinderGeometry(0.045, 0.07, 0.7, 5);
-  trunkGeo.translate(0, 0.35, 0);
-  const crownGeo = new THREE.IcosahedronGeometry(0.42, 1);
-  crownGeo.translate(0, 1.0, 0);
+  const trunkGeo = new THREE.CylinderGeometry(0.22, 0.35, 4, 6);
+  trunkGeo.translate(0, 2, 0);
+  const crownGeo = new THREE.IcosahedronGeometry(2.6, 1);
+  crownGeo.translate(0, 6.2, 0);
   const trunkMat = new THREE.MeshStandardMaterial({ color: STYLE.trunk, roughness: 1 });
   const crownMat = new THREE.MeshStandardMaterial({ color: STYLE.crown, roughness: 1, flatShading: true });
   const rand = mulberry(1234);
-  const maxTrees = 60;
+  const maxTrees = 160;
   let placed = 0;
   for (const node of treeNodes) {
     if (placed >= maxTrees) break;
     const [x, z] = project(node.lat, node.lon, lat0, lon0, SCALE);
     if (Math.hypot(x, z) > R * 0.97) continue;
-    if (Math.hypot(x, z) < 1.2) continue;
+    if (Math.hypot(x, z) < 6) continue;
     let blocked = false;
     for (const bb of buildingBoxes) {
-      if (x > bb.minX - 0.3 && x < bb.maxX + 0.3 && z > bb.minZ - 0.3 && z < bb.maxZ + 0.3) { blocked = true; break; }
+      if (x > bb.minX - 2 && x < bb.maxX + 2 && z > bb.minZ - 2 && z < bb.maxZ + 2) { blocked = true; break; }
     }
     if (blocked) continue;
     const trunk = new THREE.Mesh(trunkGeo, trunkMat);
     const crown = new THREE.Mesh(crownGeo, crownMat);
     const g = new THREE.Group();
     g.position.set(x, 0, z);
-    const s = 0.8 + rand() * 0.7;
+    const s = 0.7 + rand() * 0.9;
     g.scale.setScalar(s);
     g.rotation.y = rand() * Math.PI * 2;
     g.add(trunk, crown);
     scene.add(g);
-    obstacles.push({ minX: x - 0.2, maxX: x + 0.2, minZ: z - 0.2, maxZ: z + 0.2 });
+    obstacles.push({ minX: x - 0.5, maxX: x + 0.5, minZ: z - 0.5, maxZ: z + 0.5, h: 4 });
     placed++;
   }
 
   const edge = new THREE.Mesh(
-    new THREE.CylinderGeometry(R + 0.05, R + 0.05, 1.4, 64, 1, true),
+    new THREE.CylinderGeometry(R + 0.5, R + 0.5, 30, 64, 1, true),
     new THREE.MeshStandardMaterial({ color: 0x232a31, roughness: 1, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
   );
-  edge.position.y = 0.7;
+  edge.position.y = 15;
   scene.add(edge);
 
   return { obstacles, ground };

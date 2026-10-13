@@ -73,12 +73,13 @@ export class Enemy {
     const nx = p.x + mx, nz = p.z + mz;
     if (!circleHitsAny(nx, p.z, 0.4, obstacles)) p.x = nx;
     if (!circleHitsAny(p.x, nz, 0.4, obstacles)) p.z = nz;
+    const lim = CFG.mapRadius - 2;
     const d = Math.hypot(p.x, p.z);
-    if (d > 3.3) { p.x = p.x / d * 3.3; p.z = p.z / d * 3.3; }
+    if (d > lim) { p.x = p.x / d * lim; p.z = p.z / d * lim; }
 
     if (this.muzzle.intensity > 0) this.muzzle.intensity = Math.max(0, this.muzzle.intensity - dt * 40);
 
-    if (now > this.nextFire && dist < 45) {
+    if (now > this.nextFire && dist < 70) {
       let visible = true;
       const ray = { x: (playerPos.x - p.x) / dist, z: (playerPos.z - p.z) / dist, y: 0 };
       const origin = { x: p.x, z: p.z, y: 1.4 };

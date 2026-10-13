@@ -56,10 +56,11 @@ export class Player {
     if (!collideFn(nextX, this.pos.z, CFG.playerRadius, obstacles)) this.pos.x = nextX;
     if (!collideFn(this.pos.x, nextZ, CFG.playerRadius, obstacles)) this.pos.z = nextZ;
 
+    const lim = CFG.mapRadius - 2;
     const d = Math.hypot(this.pos.x, this.pos.z);
-    if (d > 3.35) {
-      this.pos.x = this.pos.x / d * 3.35;
-      this.pos.z = this.pos.z / d * 3.35;
+    if (d > lim) {
+      this.pos.x = this.pos.x / d * lim;
+      this.pos.z = this.pos.z / d * lim;
     }
 
     if (this.onGround && k.Space) {

@@ -27,7 +27,7 @@ export function satURL(tx, ty, z) {
   return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${ty}/${tx}`;
 }
 
-export function makeSatTexture(lat0, lon0, scale) {
+export function makeSatTexture(lat0, lon0) {
   const tex = new THREE.Texture();
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -36,24 +36,30 @@ export function makeSatTexture(lat0, lon0, scale) {
   tex.generateMipmaps = false;
   const z = CFG.satelliteZoom;
   const tileCanvas = CFG.tileSize;
-  const cols = 4, rows = 4;
+  const cols = 5, rows = 5;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = cols * tileCanvas;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#3d5c3b';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  let drawn = 0, failed = 0;
   return new Promise((resolve) => {
     const cx = lonToTileX(lon0, z), cy = latToTileY(lat0, z);
-    const tx0 = Math.floor(cx) - 1, ty0 = Math.floor(cy) - 1;
+    const tx0 = Math.floor(cx) - 2, ty0 = Math.floor(cy) - 2;
     let pending = cols * rows;
     for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
       const tx = tx0 + i, ty = ty0 + j;
       loadImg(satURL(tx, ty, z)).then(img => {
         ctx.drawImage(img, 0, 0, 256, 256, i * tileCanvas, j * tileCanvas, tileCanvas, tileCanvas);
-        drawn++;
-      }).catch(() => { failed++; }).finally(() => {
-        if (--pending === 0) { tex.image = canvas; tex.needsUpdate = true; resolve(tex); }
+      }).catch(() => {}).finally(() => {
+        if (--pending === 0) {
+          tex.image = canvas;
+          tex.needsUpdate = true;
+          const tileMeters = (40075016.686 * Math.cos(lat0 * Math.PI / 180)) / Math.pow(2, z);
+          const span = tileMeters * cols;
+          const u0 = (cx - tx0) / cols;
+          const v0 = 1 - (cy - ty0) / rows;
+          resolve({ texture: tex, span, u0, v0 });
+        }
       });
     }
   });
