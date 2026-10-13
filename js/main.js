@@ -6,6 +6,7 @@ import { loadGLBMap } from './glbMap.js';
 import { Editor, findFreeSpot } from './editor.js';
 import { buildSimpleMap } from './simpleMap.js';
 import { addSkyline } from './skyline.js';
+import { PhysicsWorld } from './physics.js';
 import { buildMap } from './mapBuilder.js';
 import { Player } from './player.js';
 import { Enemy } from './enemy.js';
@@ -20,7 +21,7 @@ const loading = $('loading');
 const hud = $('hud');
 const endScreen = $('endScreen');
 
-let renderer, scene, camera, player, weapon, effects, editor, groundMesh;
+let renderer, scene, camera, player, weapon, effects, editor, groundMesh, physics;
 let enemies = [];
 let obstacles = [];
 let running = false, over = false;
@@ -31,6 +32,12 @@ let pendingReloadMsg = false;
 function setStatus(msg, err = false) {
   statusEl.textContent = msg;
   statusEl.classList.toggle('err', err);
+}
+
+function initPhysics() {
+  if (physics) { physics.clear(); }
+  physics = new PhysicsWorld(scene);
+  physics.addObstacles(obstacles);
 }
 
 function initEditor() {
@@ -98,6 +105,7 @@ async function startSimple() {
     obstacles = built.obstacles;
     groundMesh = built.ground;
     window.__fogMapRadius = built.radius;
+    initPhysics();
 
     player = new Player(camera, renderer.domElement);
     weapon = new Weapon(camera, scene);
@@ -148,6 +156,7 @@ async function startGLB(file) {
     const buf = await file.arrayBuffer();
     const built = await loadGLBMap(scene, buf);
     obstacles = built.obstacles;
+    initPhysics();
     initEditor();
     groundMesh = built.ground;
     const mapR = Math.min(built.radius, CFG.mapRadius);
@@ -232,9 +241,11 @@ async function startGame() {
 
     setStatus('Budowanie mapy 3D…');
     window.__fogMapRadius = CFG.mapRadius;
+    obstacles = [];
     const built = await buildMap(scene, groups, loc.lat, loc.lon, setStatus, manifest);
     obstacles = built.obstacles;
     groundMesh = built.ground;
+    initPhysics();
 
     player = new Player(camera, renderer.domElement);
     weapon = new Weapon(camera, scene);
@@ -361,6 +372,8 @@ function loop() {
     showMsg('Gotów!', 700);
   });
 
+  weapon.setAiming(!!player.buttons[2]);
+
   const paused = player.isLocked();
   for (const e of enemies) {
     if (paused) e.update(dt, now, player.pos, obstacles, enemyShoot);
@@ -371,6 +384,24 @@ function loop() {
   }
 
   effects.update(dt);
+  if (physics) physics.update(dt);
+  if (physics && player.keys.KeyF && player.isLocked() && running) {
+    const dir = player.forward();
+    if (!window.__fCooldown || performance.now() - window.__fCooldown > 400) {
+      window.__fCooldown = performance.now();
+      physics.spawnBall(
+        { x: player.pos.x + dir.x, y: player.pos.y - 0.2, z: player.pos.z + dir.z },
+        { x: dir.x * 14, y: dir.y * 6 + 2, z: dir.z * 14 }
+      );
+    }
+  }
+  if (physics && player.keys.KeyG && player.isLocked() && running) {
+    if (!window.__gCooldown || performance.now() - window.__gCooldown > 400) {
+      window.__gCooldown = performance.now();
+      const dir = player.forward();
+      physics.spawnBox({ x: player.pos.x + dir.x * 1.5, y: player.pos.y, z: player.pos.z + dir.z * 1.5 });
+    }
+  }
 
   const t = Math.round((now - startTime) / 1000);
   $('timer').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} · ${Math.round(fpsEMA)} FPS`;

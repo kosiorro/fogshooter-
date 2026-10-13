@@ -2,6 +2,61 @@ import * as THREE from 'three';
 import { mergeGeometries } from './lib/BufferGeometryUtils.js';
 import { CFG } from './config.js';
 
+function makeAsphaltTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#33363a';
+  x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 4000; i++) {
+    const v = Math.random();
+    x.fillStyle = v > 0.5 ? 'rgba(90,92,96,0.4)' : 'rgba(20,22,25,0.45)';
+    x.fillRect(Math.random() * 256, Math.random() * 256, 1.5, 1.5);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function makeRoads(scene, R, obstacles) {
+  const asph = makeAsphaltTexture();
+  asph.repeat.set(2, 40);
+  const roadMat = new THREE.MeshStandardMaterial({ map: asph, roughness: 0.95 });
+  const lineMat = new THREE.MeshStandardMaterial({ color: 0xd8d8d0, roughness: 0.8 });
+  const roadGeo = new THREE.PlaneGeometry(7, R * 2 - 8);
+  const mk = (angle) => {
+    const r = new THREE.Mesh(roadGeo, roadMat);
+    r.rotation.x = -Math.PI / 2;
+    r.rotation.z = angle;
+    r.position.y = 0.02;
+    r.receiveShadow = true;
+    scene.add(r);
+    for (const side of [-1, 1]) {
+      const line = new THREE.Mesh(new THREE.PlaneGeometry(0.25, R * 2 - 8), lineMat);
+      line.rotation.x = -Math.PI / 2;
+      line.rotation.z = angle;
+      line.position.set(Math.sin(angle) * side * 2.4, 0.03, -Math.cos(angle) * side * 2.4);
+      scene.add(line);
+    }
+    const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 2), lineMat);
+    dash.rotation.x = -Math.PI / 2;
+    dash.rotation.z = angle;
+    dash.position.y = 0.03;
+    dash.visible = true;
+    for (let d = -R + 6; d < R - 6; d += 5) {
+      const dd = dash.clone();
+      dd.position.x = Math.sin(angle + Math.PI / 2) * d;
+      dd.position.z = Math.cos(angle + Math.PI / 2) * d;
+      scene.add(dd);
+    }
+  };
+  mk(0);
+  mk(Math.PI / 2);
+  mk(Math.PI / 4);
+  mk(Math.PI * 0.75);
+}
+
 function makeGroundTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 512;
@@ -41,15 +96,30 @@ function makeWallTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const x = c.getContext('2d');
-  x.fillStyle = '#9a8f7a';
+  x.fillStyle = '#7d7468';
   x.fillRect(0, 0, 256, 256);
   for (let r = 0; r < 16; r++) {
     for (let col = 0; col < 8; col++) {
       const off = (r % 2) * 16;
-      const h = 10 + Math.random() * 8;
-      x.fillStyle = `hsl(${30 + Math.random() * 15}, ${18 + Math.random() * 14}%, ${52 + Math.random() * 18}%)`;
-      x.fillRect(col * 32 + off, r * 16 + 2, 30, h);
+      const h = 13;
+      const y = r * 16 + 2.5;
+      const g = x.createLinearGradient(col * 32 + off, y, col * 32 + off, y + h);
+      const hue = 14 + Math.random() * 14;
+      const sat = 30 + Math.random() * 18;
+      const lit = 42 + Math.random() * 16;
+      g.addColorStop(0, `hsl(${hue},${sat}%,${lit + 8}%)`);
+      g.addColorStop(1, `hsl(${hue},${sat}%,${lit}%)`);
+      x.fillStyle = g;
+      x.fillRect(col * 32 + off + 1, y, 30, h);
+      x.fillStyle = 'rgba(255,255,255,0.06)';
+      x.fillRect(col * 32 + off + 1, y, 30, 2);
+      x.fillStyle = 'rgba(0,0,0,0.14)';
+      x.fillRect(col * 32 + off + 1, y + h - 2, 30, 2);
     }
+  }
+  for (let i = 0; i < 600; i++) {
+    x.fillStyle = 'rgba(0,0,0,0.08)';
+    x.fillRect(Math.random() * 256, Math.random() * 256, 2, 1);
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -73,6 +143,8 @@ export function buildSimpleMap(scene) {
   const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.9 });
   const roofMat = new THREE.MeshStandardMaterial({ color: 0x6b4a3a, roughness: 0.95 });
 
+  makeRoads(scene, R, obstacles);
+
   const rand = mulberry(42);
   const boxes = [];
   for (let i = 0; i < 40; i++) {
@@ -87,7 +159,11 @@ export function buildSimpleMap(scene) {
 
   for (const b of boxes) {
     const geo = new THREE.BoxGeometry(b.w, b.h, b.dep);
-    const mesh = new THREE.Mesh(geo, wallMat);
+    const mat = wallMat.clone();
+    mat.map = wallTex.clone();
+    mat.map.needsUpdate = true;
+    mat.map.repeat.set(Math.max(1, b.w / 4), Math.max(1, b.h / 3));
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(b.x, b.h / 2, b.z);
     mesh.rotation.y = b.rot;
     mesh.castShadow = true;

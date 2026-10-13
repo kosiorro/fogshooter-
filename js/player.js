@@ -35,6 +35,10 @@ export class Player {
     this.dom.addEventListener('click', () => {
       if (!this._locked) this.dom.requestPointerLock();
     });
+    this.buttons = {};
+    document.addEventListener('mousedown', e => { if (this._locked) this.buttons[e.button] = true; });
+    document.addEventListener('mouseup', e => { this.buttons[e.button] = false; });
+    document.addEventListener('contextmenu', e => { if (this._locked) e.preventDefault(); });
   }
 
   isLocked() { return this._locked; }

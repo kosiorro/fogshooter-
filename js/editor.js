@@ -46,6 +46,9 @@ export class Editor {
       <div class="sec">TEKSTURA PODŁOŻA</div>
       <input type="file" id="ed-groundTex" accept="image/*" style="font-size:11px">
       <button class="btn" id="ed-groundReset">Przywróć satelitarną</button>
+      <div class="sec">PANORAMA W TLE</div>
+      <input type="file" id="ed-skylineTex" accept="image/*" style="font-size:11px">
+      <button class="btn" id="ed-skylineReset">Domyślna (Poznań)</button>
       <div class="sec">ROZGRYWKA</div>
       <label>Prędkość gracza <span id="v-speed"></span></label>
       <input type="range" id="ed-playerSpeed" min="2" max="15" step="0.5">
@@ -129,6 +132,15 @@ export class Editor {
     bind('enemyHP', 'enemyHP', v => v + ' hp', v => CFG.enemyHP = v);
     bind('enemyCount', 'enemyCount', v => String(v), v => { CFG.enemyCount = v; });
 
+    p.querySelector('#ed-skylineTex').addEventListener('change', e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      this.setSkylineTexture(URL.createObjectURL(f));
+    });
+    p.querySelector('#ed-skylineReset').addEventListener('click', () => {
+      if (window.__fogSkylineApi) { window.__fogSkylineApi.reset(); this.toast('Panorama domyślna'); }
+    });
+
     p.querySelector('#ed-respawn').addEventListener('click', () => this.respawnPlayer());
     p.querySelector('#ed-save').addEventListener('click', () => {
       localStorage.setItem('fogshooter.settings', JSON.stringify(this.settings));
@@ -193,6 +205,12 @@ export class Editor {
       }
       this.toast('Tekstura podłoża zmieniona');
     });
+  }
+
+  setSkylineTexture(url) {
+    if (!window.__fogSkylineApi) { this.toast('Najpierw wczytaj mapę'); return; }
+    window.__fogSkylineApi.setImage(url);
+    this.toast('Panorama zmieniona');
   }
 
   respawnPlayer() {

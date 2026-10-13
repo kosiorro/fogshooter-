@@ -123,10 +123,11 @@ function drawTower(x, cx, baseY, h) {
 }
 
 export function addSkyline(scene, fogColor) {
+  const defaultTex = makePoznanSkylineTexture();
   const tex = makePoznanSkylineTexture();
   const geo = new THREE.CylinderGeometry(340, 340, 190, 48, 1, true);
   const mat = new THREE.MeshBasicMaterial({
-    map: tex,
+    map: defaultTex,
     side: THREE.BackSide,
     fog: false,
     transparent: true,
@@ -141,6 +142,23 @@ export function addSkyline(scene, fogColor) {
   );
   dome.position.y = 60;
   scene.add(dome);
+  const loader = new THREE.TextureLoader();
+  window.__fogSkylineApi = {
+    mesh,
+    setImage(url) {
+      loader.load(url, t => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.wrapS = THREE.RepeatWrapping;
+        t.wrapT = THREE.ClampToEdgeWrapping;
+        mat.map = t;
+        mat.needsUpdate = true;
+      });
+    },
+    reset() {
+      mat.map = defaultTex;
+      mat.needsUpdate = true;
+    },
+  };
   return mesh;
 }
 
