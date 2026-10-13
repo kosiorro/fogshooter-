@@ -111,3 +111,16 @@ Mgła, broń, HP i AI działają tak samo jak na mapach OSM.
 Jeśli masz pliki CityGML (`.xml`/`.gml`) zamiast GLB, przekonwertuj je np. narzędziem
 [citygml-tools](https://github.com/citygml4j/citygml-tools) (`to-glTF`) lub FME,
 potem wczytaj wynikowy `.glb` jak wyżej. GLB z teksturami działa najlepiej.
+
+## Edytor mapy (klawisz E)
+
+W grze naciśnij **E** — otworzy się panel edytora:
+
+- **Mgła**: gęstość (suwak 0.0005–0.03) i kolor (próbnik) — na żywo
+- **Model 3D (GLB)**: skala (0.1–4×), przesunięcie Y (±20 m), obrót Y — kolizje przebudowują się automatycznie
+- **Tekstura podłoża**: wgraj własny obrazek (jpg/png) — np. znalezione zdjęcie satelitarne lepsze od domyślnego; przycisk „Przywróć satelitarną" wraca do oryginału
+- **Rozgrywka**: prędkość gracza, skok, obrażenia, szybkostrzelność, prędkość/HP/liczba wrogów
+- **Przenieś mnie na wolne miejsce** — bezpieczny respawn, gdy utkniesz w teksturze/budynku
+- **Zapisz ustawienia** — persystencja w localStorage (przetrwa odświeżenie strony)
+
+Spawn gracza po wczytaniu mapy jest zawsze na wolnym miejscu (silnik szuka pierścieniem od środka).

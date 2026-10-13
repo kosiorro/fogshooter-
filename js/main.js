@@ -84,6 +84,8 @@ async function startGLB(file) {
     const buf = await file.arrayBuffer();
     const built = await loadGLBMap(scene, buf);
     obstacles = built.obstacles;
+    initEditor();
+    groundMesh = built.ground;
     const mapR = Math.min(built.radius, CFG.mapRadius);
     window.__fogMapRadius = mapR;
 
@@ -91,6 +93,8 @@ async function startGLB(file) {
     weapon = new Weapon(camera, scene);
     effects = new Effects(scene);
 
+    const safe = findFreeSpot(obstacles, mapR);
+    player.pos.set(safe.x, CFG.playerHeight, safe.z);
     const sp = spawnPoints(CFG.enemyCount, [mapR * 0.5, mapR * 0.9], obstacles, mapR - 2);
     enemies = sp.map((pt, i) => new Enemy(scene, pt.x, pt.z, i));
     for (const e of enemies) {
@@ -160,16 +164,20 @@ async function startGame() {
     const bldCount = groups.buildings.length;
 
     if (!renderer) initRenderer();
+    initEditor();
 
     setStatus('Budowanie mapy 3D…');
     window.__fogMapRadius = CFG.mapRadius;
     const built = await buildMap(scene, groups, loc.lat, loc.lon, setStatus, manifest);
     obstacles = built.obstacles;
+    groundMesh = built.ground;
 
     player = new Player(camera, renderer.domElement);
     weapon = new Weapon(camera, scene);
     effects = new Effects(scene);
 
+    const safe = findFreeSpot(obstacles, window.__fogMapRadius || CFG.mapRadius);
+    player.pos.set(safe.x, CFG.playerHeight, safe.z);
     const sp = spawnPoints(CFG.enemyCount, CFG.spawnRange, obstacles);
     enemies = sp.map((p, i) => new Enemy(scene, p.x, p.z, i));
 

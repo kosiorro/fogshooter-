@@ -56,6 +56,22 @@ export function loadGLBMap(scene, arrayBuffer) {
         Math.hypot(finalBox.min.x, finalBox.min.z),
         Math.hypot(finalBox.max.x, finalBox.max.z)
       );
+      const baseScale = scale;
+      const baseY = root.position.y;
+      const rebuild = () => {
+        obstacles.length = 0;
+        const fb = new THREE.Box3().setFromObject(root);
+        const dx = (fb.max.x - fb.min.x) / 8;
+        const dz = (fb.max.z - fb.min.z) / 8;
+        for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+          obstacles.push({
+            minX: fb.min.x + dx * i, maxX: fb.min.x + dx * (i + 1),
+            minZ: fb.min.z + dz * j, maxZ: fb.min.z + dz * (j + 1),
+            h: Math.max(2.5, 10),
+          });
+        }
+      };
+      window.__fogGLBApi = { root, baseScale, baseY, rebuild, radius, obstacles };
       resolve({ obstacles, radius, center: finalBox.getCenter(new THREE.Vector3()) });
     }, reject);
   });
