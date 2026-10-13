@@ -22,9 +22,9 @@ function levelsToHeight(lv) {
   return Math.max(2.2, lv * CFG.heightPerLevel);
 }
 
-function buildingFootprint(way) {
+function buildingFootprint(way, lat0, lon0) {
   const pts = way.pts.map(([lat, lon]) => {
-    const [x, z] = project(lat, lon, 0, 0, SCALE);
+    const [x, z] = project(lat, lon, lat0, lon0, SCALE);
     return { x, z };
   });
   const realArea = ringArea(way.pts);
@@ -81,7 +81,7 @@ export async function buildMap(scene, groups, lat0, lon0, onStatus) {
 
   const blds = [];
   for (const w of buildings) {
-    const fp = buildingFootprint(w);
+    const fp = buildingFootprint(w, lat0, lon0);
     if (fp.pts.length < 3 || fp.realArea < 20) continue;
     blds.push({ way: w, fp });
   }
